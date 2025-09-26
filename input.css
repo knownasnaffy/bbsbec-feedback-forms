@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+html {
+  font-family: "Times New Roman";
+}
+
+th,
+td {
+  @apply border px-2 py-0.5 leading-4;
+}
