@@ -1,16 +1,21 @@
-import express from "express";
-import fs from "fs";
+import express, { Request, Response } from "express";
 import { generateStudentsPdf } from "./generators/students";
+import path from "path";
+
+const PORT = 3001;
+
 const app = express();
 app.use(express.json());
 
-app.post("/generate", async (req, res) => {
-  // Accepts JSON payload, returns (or streams) PDF file
+// Serve static files from the 'public' folder
+app.use(express.static(path.join(__dirname, "public")));
+
+app.post("/generate", async (req: Request, res: Response) => {
   const records = req.body.records;
-  console.log(records);
-  await generateStudentsPdf(records);
-  // fs.mkdirSync("export/students", { recursive: true });
-  // res.download(`students/${records[0].roll}.pdf`); // adjust for your use-case
+  await generateStudentsPdf(records).catch(console.error);
+  res.download(`export/students/${records[0].roll}.pdf`);
 });
 
-app.listen(3000);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

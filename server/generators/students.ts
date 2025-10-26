@@ -1,7 +1,9 @@
 import puppeteer from "puppeteer";
 import fs from "fs";
-import { StudentRecordWithFeedback } from "../types/students";
-import { Responses } from "../types/common";
+import { StudentRecordWithFeedback } from "../../webapp/lib/types/students";
+import { Responses } from "../../webapp/lib/types/common";
+
+const LOGO_IMG = "http://localhost:3001/logo.png";
 
 function generateHTML(item: StudentRecordWithFeedback): string {
   return `
@@ -374,7 +376,7 @@ function generateHTML(item: StudentRecordWithFeedback): string {
   </head>
     <body class="px-8 max-w-[50rem] mx-auto">
       <header class="flex justify-between items-center pb-4 border-b-4 border-black">
-        <img src="http://localhost:3000/logo.png" alt="Logo" class="size-20" />
+        <img src="${LOGO_IMG}" alt="Logo" class="size-20" />
         <h1 class="text-end text-xl font-medium">
           BABA BANDA SINGH BAHADUR ENGINEERING COLLEGE<br />FATEHGARH SAHIB
         </h1>
@@ -477,7 +479,7 @@ export async function generateStudentsPdf(
 
     // Generate PDF with options similar to your expected output
     await page.pdf({
-      path: `students/${record.roll}.pdf`,
+      path: `export/students/${record.roll}.pdf`,
       format: "A4",
       printBackground: true,
       margin: { top: "50px", bottom: "50px", left: "40px", right: "40px" },
