@@ -460,24 +460,16 @@ function generateHTML(item: StudentRecordWithFeedback): string {
 export async function generateStudentsPdf(
   records: StudentRecordWithFeedback[],
 ) {
-  const browser = await puppeteer.launch({
-    headless: true,
-  });
+  const browser = await puppeteer.launch({ headless: true });
   fs.mkdirSync("export/students", { recursive: true });
 
-  records.forEach(async (record, index) => {
+  for (const record of records) {
     const page = await browser.newPage();
-
-    // Generate the complete HTML content with injected data
     const content = generateHTML(record);
 
-    // Set HTML content into the page
     await page.setContent(content, { waitUntil: "networkidle0" });
-
-    // Emulate screen media (important for screen CSS styles)
     await page.emulateMediaType("screen");
 
-    // Generate PDF with options similar to your expected output
     await page.pdf({
       path: `export/students/${record.roll}.pdf`,
       format: "A4",
@@ -486,11 +478,9 @@ export async function generateStudentsPdf(
     });
 
     await page.close();
+  }
 
-    if (index === records.length - 1) {
-      await browser.close();
-    }
-  });
+  await browser.close();
 }
 
 // generatePdf().catch(console.error);
