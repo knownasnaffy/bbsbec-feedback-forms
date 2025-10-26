@@ -13,7 +13,14 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.post("/generate/student", async (req: Request, res: Response) => {
   const records = req.body.records;
+  console.info(
+    "Request recieved to generate PDFs for students:",
+    records.length,
+  );
+
+  console.info("Generating student PDFs...");
   await generateStudentsPdf(records).catch(console.error);
+  console.info("PDF generation completed.");
 
   // Path to the directory containing all student PDFs
   const studentsDir = path.join(__dirname, "..", "export", "students");
@@ -22,6 +29,7 @@ app.post("/generate/student", async (req: Request, res: Response) => {
   res.setHeader("Content-Type", "application/zip");
   res.setHeader("Content-Disposition", "attachment; filename=students.zip");
 
+  console.info("Creating zip archive...");
   // Create a zip archive and pipe it to response
   const archive = archiver("zip", { zlib: { level: 9 } }); // maximum compression
 
@@ -37,6 +45,7 @@ app.post("/generate/student", async (req: Request, res: Response) => {
 
   // Finalize the archive (signals that no more files will be added)
   archive.finalize();
+  console.info("Zip archive created and sent to client.");
 });
 
 app.listen(port, () => {
