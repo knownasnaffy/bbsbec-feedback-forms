@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import fs from "fs";
-import { StudentRecordWithFeedback } from "../../webapp/lib/types/students";
-import { Responses } from "../../webapp/lib/types/common";
+import { StudentRecordWithFeedback } from "../types/students";
+import { Responses } from "../types/common";
 
 const LOGO_IMG = "http://localhost:3001/logo.png";
 
