@@ -461,7 +461,10 @@ function generateHTML(item: StudentRecordWithFeedback): string {
 export async function generateStudentsPdf(
   records: StudentRecordWithFeedback[],
 ) {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
   fs.mkdirSync("export/students", { recursive: true });
 
   for (const record of records) {
