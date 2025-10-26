@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import { generateStudentsPdf } from "./generators/students";
 import path from "path";
 
-const PORT = 3001;
+const port = process.env.PORT || 4000;
 
 const app = express();
 app.use(express.json());
@@ -16,6 +16,6 @@ app.post("/generate", async (req: Request, res: Response) => {
   res.download(`export/students/${records[0].roll}.pdf`);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
