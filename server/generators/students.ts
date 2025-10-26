@@ -3,7 +3,8 @@ import fs from "fs";
 import { StudentRecordWithFeedback } from "../types/students";
 import { Responses } from "../types/common";
 
-const LOGO_IMG = "http://localhost:3001/logo.png";
+const port = process.env.PORT || 4000;
+const LOGO_IMG = `http://localhost:${port}/logo.png`;
 
 function generateHTML(item: StudentRecordWithFeedback): string {
   return `
