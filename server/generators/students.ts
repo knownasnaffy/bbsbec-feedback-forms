@@ -1,5 +1,7 @@
 import puppeteer from "puppeteer";
 import fs from "fs";
+import os from "os";
+import { randomUUID } from "crypto";
 import { StudentRecordWithFeedback } from "../types/students";
 import { Responses } from "../types/common";
 
@@ -460,12 +462,21 @@ function generateHTML(item: StudentRecordWithFeedback): string {
 
 export async function generateStudentsPdf(
   records: StudentRecordWithFeedback[],
-) {
+): Promise<{ runId: string; exportDir: string }> {
+  // Get cross-platform temporary directory
+  const tempDir = os.tmpdir();
+
+  // Generate a unique id for this run
+  const runId = randomUUID();
+
+  // Create a dedicated temp folder for this batch
+  const exportDir = `${tempDir}/students-${runId}`;
+  fs.mkdirSync(exportDir, { recursive: true });
+
   const browser = await puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
-  fs.mkdirSync("export/students", { recursive: true });
 
   for (const record of records) {
     const page = await browser.newPage();
@@ -474,8 +485,10 @@ export async function generateStudentsPdf(
     await page.setContent(content, { waitUntil: "networkidle0" });
     await page.emulateMediaType("screen");
 
+    const filePath = `${exportDir}/${record.roll}.pdf`;
+
     await page.pdf({
-      path: `export/students/${record.roll}.pdf`,
+      path: filePath,
       format: "A4",
       printBackground: true,
       margin: { top: "50px", bottom: "50px", left: "40px", right: "40px" },
@@ -485,6 +498,9 @@ export async function generateStudentsPdf(
   }
 
   await browser.close();
+
+  // Return the runId and file paths for caller to know where files are stored
+  return { runId, exportDir };
 }
 
 // generatePdf().catch(console.error);

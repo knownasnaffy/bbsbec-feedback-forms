@@ -14,24 +14,24 @@ app.use(express.static(path.join(__dirname, "public")));
 app.post("/generate/student", async (req: Request, res: Response) => {
   const records = req.body.records;
   console.info(
-    "Request recieved to generate PDFs for students:",
+    "Request received to generate PDFs for students:",
     records.length,
   );
 
   console.info("Generating student PDFs...");
-  await generateStudentsPdf(records).catch(console.error);
+  // The function now returns { runId, exportDir, generatedFiles }
+  const { runId, exportDir } = await generateStudentsPdf(records);
   console.info("PDF generation completed.");
 
-  // Path to the directory containing all student PDFs
-  const studentsDir = path.join(__dirname, "..", "export", "students");
-
-  // Set response headers for zip download
+  // Set response headers for zip download (include runId for reference if needed)
   res.setHeader("Content-Type", "application/zip");
-  res.setHeader("Content-Disposition", "attachment; filename=students.zip");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=students-${runId}.zip`,
+  );
 
   console.info("Creating zip archive...");
-  // Create a zip archive and pipe it to response
-  const archive = archiver("zip", { zlib: { level: 9 } }); // maximum compression
+  const archive = archiver("zip", { zlib: { level: 9 } });
 
   archive.on("error", (err) => {
     console.error(err);
@@ -40,10 +40,9 @@ app.post("/generate/student", async (req: Request, res: Response) => {
 
   archive.pipe(res);
 
-  // Append all files in the students directory to the zip
-  archive.directory(studentsDir, false);
+  // Append all files in the generated temp directory to the zip
+  archive.directory(exportDir, false);
 
-  // Finalize the archive (signals that no more files will be added)
   archive.finalize();
   console.info("Zip archive created and sent to client.");
 });
