@@ -59,6 +59,14 @@ export async function POST(request: Request) {
   const zipArrayBuffer = await zipReqResponse.arrayBuffer();
   const zipBuffer = Buffer.from(zipArrayBuffer);
 
+  //   return new NextResponse(zipBuffer, {
+  //   status: zipReqResponse.status,
+  //   headers: {
+  //     "Content-Type": "application/zip",
+  //     "Content-Disposition": 'attachment; filename="output.zip"',
+  //   },
+  // });
+
   // Return the zip file as an attachment (download)
   return NextResponse.json({
     ok: true,
