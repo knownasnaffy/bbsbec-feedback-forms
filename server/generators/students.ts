@@ -463,13 +463,8 @@ function generateHTML(item: StudentRecordWithFeedback): string {
 export async function generateStudentsPdf(
   records: StudentRecordWithFeedback[],
 ): Promise<{ runId: string; exportDir: string }> {
-  // Get cross-platform temporary directory
   const tempDir = os.tmpdir();
-
-  // Generate a unique id for this run
   const runId = randomUUID();
-
-  // Create a dedicated temp folder for this batch
   const exportDir = `${tempDir}/students-${runId}`;
   fs.mkdirSync(exportDir, { recursive: true });
 
@@ -478,7 +473,22 @@ export async function generateStudentsPdf(
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
-  for (const record of records) {
+  const total = records.length;
+
+  for (let i = 0; i < total; i++) {
+    const record = records[i];
+
+    // Update progress
+    const percent = (((i + 1) / total) * 100).toFixed(1);
+    const progressBarLength = 20;
+    const filledLength = Math.round(((i + 1) / total) * progressBarLength);
+    const bar =
+      "█".repeat(filledLength) + "-".repeat(progressBarLength - filledLength);
+
+    process.stdout.write(
+      `\rProgress: [${bar}] ${percent}% (${i + 1}/${total})`,
+    );
+
     const page = await browser.newPage();
     const content = generateHTML(record);
 
@@ -486,20 +496,20 @@ export async function generateStudentsPdf(
     await page.emulateMediaType("screen");
 
     const filePath = `${exportDir}/${record.roll}.pdf`;
-
     await page.pdf({
       path: filePath,
       format: "A4",
       printBackground: true,
       margin: { top: "50px", bottom: "50px", left: "40px", right: "40px" },
     });
-
     await page.close();
   }
 
   await browser.close();
 
-  // Return the runId and file paths for caller to know where files are stored
+  // Print newline after progress finishes to avoid overwriting prompt
+  process.stdout.write("\n");
+
   return { runId, exportDir };
 }
 
