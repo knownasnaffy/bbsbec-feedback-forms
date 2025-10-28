@@ -82,11 +82,15 @@ export function CsvUploadForm({
     setError(null);
     setSuccess(null);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20 * 60 * 1000); // 20 mins
+
     try {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, records }),
+        signal: controller.signal,
       });
 
       // Check if response is zip (application/zip)
@@ -116,10 +120,15 @@ export function CsvUploadForm({
         setRecords("");
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
-    } catch (err) {
-      setError("Network error. Please check your connection and try again.");
+    } catch (err: any) {
+      if (err?.name === "AbortError") {
+        setError("Request timed out. Please try again later.");
+      } else
+        setError("Network error. Please check your connection and try again.");
+      clearTimeout(timeout);
     } finally {
       setSubmitting(false);
+      clearTimeout(timeout);
     }
   }
 
