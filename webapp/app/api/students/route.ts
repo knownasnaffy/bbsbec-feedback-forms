@@ -41,6 +41,9 @@ export async function POST(request: Request) {
   console.log(perQuestionAverages);
   // await generateStudentsPdf(dataset);
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20 * 60 * 1000); // 5 minutes
+
   // Forward the JSON data to the backend server as a POST request
   const zipReqResponse = await fetch("http://localhost:4000/generate/student", {
     method: "POST",
@@ -48,9 +51,12 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      records: dataset.splice(0, 20), // Limit to first 500 records for testing
+      records: dataset.slice(0, Math.floor(dataset.length * 0.7)), // Limit to first 500 records for testing
     }),
+    signal: controller.signal,
   });
+
+  clearTimeout(timeout);
 
   // Read the response as a Blob (binary data)
   const zipArrayBuffer = await zipReqResponse.arrayBuffer();
