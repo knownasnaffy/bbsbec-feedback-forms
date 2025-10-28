@@ -1,22 +1,29 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import * as React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type Props = {
-  title: string
-  description?: string
-  endpoint: string
-  nameLabel: string
-  namePlaceholder?: string
-  textareaPlaceholder?: string
-  cta?: string
-}
+  title: string;
+  description?: string;
+  endpoint: string;
+  nameLabel: string;
+  namePlaceholder?: string;
+  textareaPlaceholder?: string;
+  cta?: string;
+};
 
 export function CsvUploadForm({
   title,
@@ -27,68 +34,92 @@ export function CsvUploadForm({
   textareaPlaceholder = "Paste CSV content here or upload a file",
   cta = "Submit",
 }: Props) {
-  const [name, setName] = React.useState("")
-  const [records, setRecords] = React.useState("")
-  const [submitting, setSubmitting] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const [success, setSuccess] = React.useState<string | null>(null)
-  const [fileError, setFileError] = React.useState<string | null>(null)
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [name, setName] = React.useState("");
+  const [records, setRecords] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState<string | null>(null);
+  const [fileError, setFileError] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    setFileError(null)
+    const file = e.target.files?.[0];
+    setFileError(null);
 
-    if (!file) return
+    if (!file) return;
 
     // Validate file type
-    if (!file.name.endsWith(".csv") && file.type !== "text/csv" && file.type !== "text/plain") {
-      setFileError("Please upload a valid CSV file (.csv)")
-      if (fileInputRef.current) fileInputRef.current.value = ""
-      return
+    if (
+      !file.name.endsWith(".csv") &&
+      file.type !== "text/csv" &&
+      file.type !== "text/plain"
+    ) {
+      setFileError("Please upload a valid CSV file (.csv)");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setFileError("File size must be less than 5MB")
-      if (fileInputRef.current) fileInputRef.current.value = ""
-      return
+      setFileError("File size must be less than 5MB");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
     }
 
     try {
-      const text = await file.text()
-      setRecords(text)
-      setFileError(null)
+      const text = await file.text();
+      setRecords(text);
+      setFileError(null);
     } catch (err) {
-      setFileError("Failed to read file. Please try again.")
-      if (fileInputRef.current) fileInputRef.current.value = ""
+      setFileError("Failed to read file. Please try again.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
   async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setError(null)
-    setSuccess(null)
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
     try {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, records }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(data?.error || "Submission failed. Please try again.")
-        return
+      });
+
+      // Check if response is zip (application/zip)
+      if (res.ok && res.headers.get("content-type") === "application/zip") {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${name}_output.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        setSuccess("Download started.");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(data?.error || "Submission failed. Please try again.");
+          return;
+        }
+        setSuccess(
+          data?.count
+            ? `Successfully processed ${data.count} row(s).`
+            : "Submitted successfully.",
+        );
+        setName("");
+        setRecords("");
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
-      setSuccess(data?.count ? `Successfully processed ${data.count} row(s).` : "Submitted successfully.")
-      setName("")
-      setRecords("")
-      if (fileInputRef.current) fileInputRef.current.value = ""
     } catch (err) {
-      setError("Network error. Please check your connection and try again.")
+      setError("Network error. Please check your connection and try again.");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
@@ -96,7 +127,11 @@ export function CsvUploadForm({
     <Card className="border-border bg-card shadow-sm">
       <CardHeader>
         <CardTitle className="text-balance">{title}</CardTitle>
-        {description ? <CardDescription className="text-muted-foreground">{description}</CardDescription> : null}
+        {description ? (
+          <CardDescription className="text-muted-foreground">
+            {description}
+          </CardDescription>
+        ) : null}
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="grid gap-4" noValidate>
@@ -105,6 +140,7 @@ export function CsvUploadForm({
             <Input
               id="name"
               value={name}
+              disabled={submitting}
               onChange={(e) => setName(e.target.value)}
               placeholder={namePlaceholder}
               className="bg-background"
@@ -120,6 +156,7 @@ export function CsvUploadForm({
               id="csv-file"
               type="file"
               accept=".csv,text/csv,text/plain"
+              disabled={submitting}
               onChange={handleFileUpload}
               className="bg-background cursor-pointer"
               aria-describedby="file-help"
@@ -141,13 +178,15 @@ export function CsvUploadForm({
               id="records"
               value={records}
               onChange={(e) => setRecords(e.target.value)}
+              disabled={submitting}
               placeholder={textareaPlaceholder}
               className="min-h-40 bg-background"
               required
               aria-required="true"
             />
             <p className="text-sm text-muted-foreground">
-              Tip: Include a header row. Example: {'"name,email\\nAda,ada@uni.edu"'}
+              Tip: Include a header row. Example:{" "}
+              {'"name,email\\nAda,ada@uni.edu"'}
             </p>
           </div>
 
@@ -159,7 +198,11 @@ export function CsvUploadForm({
           ) : null}
 
           {success ? (
-            <Alert role="status" aria-live="polite" className="border-primary/30">
+            <Alert
+              role="status"
+              aria-live="polite"
+              className="border-primary/30"
+            >
               <AlertTitle>Success</AlertTitle>
               <AlertDescription>{success}</AlertDescription>
             </Alert>
@@ -178,5 +221,5 @@ export function CsvUploadForm({
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

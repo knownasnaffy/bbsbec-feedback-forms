@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { isValidCsv, countCsvRows } from "@/lib/csv";
-import { writeFileSync } from "fs";
 import { StudentRecord } from "@/lib/types/students";
 import {
   calcPerQuestionWeightedAverages,
   generateRecords,
 } from "@/lib/generator/students";
-import { generateStudentsPdf } from "@/lib/pdf/students";
+import { isValidCsv } from "@/lib/csv";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}) as any);
@@ -26,7 +24,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const count = countCsvRows(input as string);
   const records = input
     .trim()
     .split("\n")
@@ -59,19 +56,11 @@ export async function POST(request: Request) {
   const zipArrayBuffer = await zipReqResponse.arrayBuffer();
   const zipBuffer = Buffer.from(zipArrayBuffer);
 
-  //   return new NextResponse(zipBuffer, {
-  //   status: zipReqResponse.status,
-  //   headers: {
-  //     "Content-Type": "application/zip",
-  //     "Content-Disposition": 'attachment; filename="output.zip"',
-  //   },
-  // });
-
-  // Return the zip file as an attachment (download)
-  return NextResponse.json({
-    ok: true,
-    type: "students",
-    name: program,
-    count,
+  return new NextResponse(zipBuffer, {
+    status: zipReqResponse.status,
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${program}_output.zip"`,
+    },
   });
 }
