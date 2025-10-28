@@ -41,10 +41,25 @@ export async function POST(request: Request) {
 
   const perQuestionAverages = calcPerQuestionWeightedAverages(dataset);
 
-  // console.log(perQuestionAverages);
-  await generateStudentsPdf(dataset);
+  console.log(perQuestionAverages);
+  // await generateStudentsPdf(dataset);
 
-  // Dummy processing — in real app, insert into DB
+  // Forward the JSON data to the backend server as a POST request
+  const zipReqResponse = await fetch("http://localhost:4000/generate/student", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      records: dataset.splice(0, 20), // Limit to first 500 records for testing
+    }),
+  });
+
+  // Read the response as a Blob (binary data)
+  const zipArrayBuffer = await zipReqResponse.arrayBuffer();
+  const zipBuffer = Buffer.from(zipArrayBuffer);
+
+  // Return the zip file as an attachment (download)
   return NextResponse.json({
     ok: true,
     type: "students",
