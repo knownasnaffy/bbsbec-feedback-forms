@@ -38,7 +38,6 @@ export async function POST(request: Request) {
 
   const perQuestionAverages = calcPerQuestionWeightedAverages(dataset);
 
-  console.log(perQuestionAverages);
   // await generateStudentsPdf(dataset);
 
   const controller = new AbortController();
