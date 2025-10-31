@@ -55,23 +55,6 @@ export function generateRecords(
   return out;
 }
 
-// const records: StudentRecord[] = [
-//   { name: "Barinderpreet Singh", roll: "2414225", program: "B.Tech CSE 2024" },
-//   { name: "Amritpal Singh", roll: "2414205", program: "B.Tech CSE 2024" },
-//   { name: "Amritpal Singh", roll: "2414205", program: "B.Tech CSE 2024" },
-//   { name: "Amritpal Singh", roll: "2414205", program: "B.Tech CSE 2024" },
-//   { name: "Amritpal Singh", roll: "2414205", program: "B.Tech CSE 2024" },
-//   { name: "Amritpal Singh", roll: "2414205", program: "B.Tech CSE 2024" },
-//   { name: "Amritpal Singh", roll: "2414205", program: "B.Tech CSE 2024" },
-//   // Add more if needed...
-// ];
-
-// const dataset = generateRecords(records, 4.5, 10);
-//
-// console.log(dataset);
-//
-// console.log("Weighted average:", calcWeightedAverage(dataset));
-
 export function calcPerQuestionWeightedAverages(
   records: StudentRecordWithFeedback[],
 ): { [key: string]: number } {
@@ -90,17 +73,88 @@ export function calcPerQuestionWeightedAverages(
   return result;
 }
 
-// Example usage (put after generateRecords):
-// const perQuestionAverages = calcPerQuestionWeightedAverages(dataset);
-// console.log(perQuestionAverages);
+type RatingCounts = {
+  excellent: number;
+  veryGood: number;
+  good: number;
+  moderate: number;
+  poor: number;
+};
 
-/* Output example:
-{
-  "1": 4.6,
-  "2": 4.7,
-  "3": 4.5,
-  "4": 4.3,
-  ...
-  "10": 4.4
+type QuestionSummary = {
+  questionNo: number;
+  counts: RatingCounts;
+  average: number;
+};
+
+export function prepareFeedbackSummary(
+  records: StudentRecordWithFeedback[],
+  averages: { [key: string]: number },
+): QuestionSummary[] {
+  const numQuestions = Object.keys(records[0].responses).length;
+  const summary: QuestionSummary[] = [];
+
+  for (let q = 1; q <= numQuestions; q++) {
+    const counts: RatingCounts = {
+      excellent: 0,
+      veryGood: 0,
+      good: 0,
+      moderate: 0,
+      poor: 0,
+    };
+
+    records.forEach((rec) => {
+      const rating = rec.responses[q.toString()];
+      if (rating === 5) counts.excellent++;
+      else if (rating === 4) counts.veryGood++;
+      else if (rating === 3) counts.good++;
+      else if (rating === 2) counts.moderate++;
+      else if (rating === 1) counts.poor++;
+    });
+
+    summary.push({
+      questionNo: q,
+      counts,
+      average: averages[q.toString()] || 0,
+    });
+  }
+
+  return summary;
 }
-*/
+
+export function generateExcelData(
+  summary: QuestionSummary[],
+  particulars: string[],
+) {
+  const data = summary.map((item, idx) => ({
+    "Sr. No.": item.questionNo,
+    Particulars: particulars[idx], // Assuming particulars is 0-indexed for question 1
+    " ": "", // Empty column
+    Excellent: item.counts.excellent,
+    "Very Good": item.counts.veryGood,
+    Good: item.counts.good,
+    Moderate: item.counts.moderate,
+    Poor: item.counts.poor,
+    Average: item.average,
+    "Total Responses":
+      item.counts.excellent +
+      item.counts.veryGood +
+      item.counts.good +
+      item.counts.moderate +
+      item.counts.poor,
+  }));
+  return data;
+}
+
+export const studentFeedbackParticulars = [
+  "The aptness of the learning objects of the program.",
+  "The organization of the syllabi and its appropriateness to the program.",
+  "The suitability of the text books and reference books to the courses.",
+  "The effectiveness of feedback submitted by the faculty to the university w.r.t design and development of syllabi.",
+  "Distribution of contact hours among the course components.",
+  "The balance between theory and practical courses/training in the curriculum.",
+  "The quality of elective subjects offered in terms of technological advancements.",
+  "The aptness of modern tools taught in higher education or career.",
+  "Communication skills imparted to effectively communicate and give / receive clear instructions.",
+  "Ability to assess societal, health, safety, legal and cultural issues and the associated responsibilities.",
+];

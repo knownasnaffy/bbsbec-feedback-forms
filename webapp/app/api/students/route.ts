@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { StudentRecord } from "@/lib/types/students";
 import {
   calcPerQuestionWeightedAverages,
+  generateExcelData,
   generateRecords,
+  prepareFeedbackSummary,
+  studentFeedbackParticulars,
 } from "@/lib/generator/students";
 import { isValidCsv } from "@/lib/csv";
 import { randomizedSubset } from "@/lib/utils";
@@ -34,8 +37,11 @@ export async function POST(request: Request) {
     }) as StudentRecord[];
 
   const dataset = generateRecords(records, 4.5, 10);
-  const perQuestionAverages = calcPerQuestionWeightedAverages(dataset);
+  const finalDataset = randomizedSubset(dataset);
+  const perQuestionAverages = calcPerQuestionWeightedAverages(finalDataset);
 
+  const summary = prepareFeedbackSummary(finalDataset, perQuestionAverages);
+  const excelData = generateExcelData(summary, studentFeedbackParticulars);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20 * 60 * 1000); // 20 minutes
 
@@ -46,7 +52,8 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      records: randomizedSubset(dataset),
+      records: finalDataset,
+      excel: excelData,
     }),
     signal: controller.signal,
   });

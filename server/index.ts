@@ -17,6 +17,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 import * as os from "os";
 import { randomUUID } from "crypto";
+import { FeedbackExcelRow, saveFeedbackExcel } from "./generators/xl/students";
 
 function getDownloadsFolder(): string {
   const home = os.homedir();
@@ -28,9 +29,8 @@ const appDir = path.join(getDownloadsFolder(), "feedback-forms");
 app.post("/generate/student", async (req: Request, res: Response) => {
   const records = req.body.records;
   const runId = randomUUID();
+  const excelData: FeedbackExcelRow[] = req.body.excel;
 
-  // Make the following tasks background
-  //
   // Respond early to client with job id
   res.json({ jobId: runId, message: "Processing started" });
 
@@ -38,6 +38,8 @@ app.post("/generate/student", async (req: Request, res: Response) => {
   (async () => {
     try {
       const { exportDir } = await generateStudentsPdf(records, appDir, runId);
+
+      saveFeedbackExcel(excelData, exportDir, "FeedbackSummary.xlsx");
 
       const zipPath = path.join(appDir, "students", `${runId}.zip`);
       const output = createWriteStream(zipPath);
