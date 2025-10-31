@@ -33,39 +33,38 @@ export async function POST(request: Request) {
     }) as StudentRecord[];
 
   const dataset = generateRecords(records, 4.5, 10);
-
-  // console.log(dataset);
-
   const perQuestionAverages = calcPerQuestionWeightedAverages(dataset);
 
-  // await generateStudentsPdf(dataset);
-
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20 * 60 * 1000); // 5 minutes
+  const timeout = setTimeout(() => controller.abort(), 20 * 60 * 1000); // 20 minutes
 
-  // Forward the JSON data to the backend server as a POST request
+  // Forward the JSON data to the backend server
   const zipReqResponse = await fetch("http://localhost:4000/generate/student", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      records: dataset.slice(0, Math.floor(dataset.length * 0.7)), // Limit to first 500 records for testing
+      records: dataset.slice(0, Math.floor(dataset.length * 0.7)), // Limit for testing
     }),
     signal: controller.signal,
   });
 
   clearTimeout(timeout);
 
-  // Read the response as a Blob (binary data)
-  const zipArrayBuffer = await zipReqResponse.arrayBuffer();
-  const zipBuffer = Buffer.from(zipArrayBuffer);
+  if (!zipReqResponse.ok) {
+    const errorData = await zipReqResponse.json().catch(() => ({}));
+    return NextResponse.json(
+      { error: errorData.error || "Backend generation failed" },
+      { status: zipReqResponse.status },
+    );
+  }
 
-  return new NextResponse(zipBuffer, {
-    status: zipReqResponse.status,
-    headers: {
-      "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${program}_output.zip"`,
-    },
+  // Read the JSON response with jobId (no zip directly)
+  const data = await zipReqResponse.json();
+
+  return NextResponse.json({
+    message: "Processing started",
+    jobId: data.jobId,
   });
 }

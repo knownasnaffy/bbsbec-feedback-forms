@@ -83,7 +83,7 @@ export function CsvUploadForm({
     setSuccess(null);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20 * 60 * 1000); // 20 mins
+    const timeout = setTimeout(() => controller.abort(), 20 * 60 * 1000); // 20 minutes
 
     try {
       const res = await fetch(endpoint, {
@@ -93,39 +93,26 @@ export function CsvUploadForm({
         signal: controller.signal,
       });
 
-      // Check if response is zip (application/zip)
-      if (res.ok && res.headers.get("content-type") === "application/zip") {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${name}_output.zip`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        setSuccess("Download started.");
+      if (res.ok) {
+        const data = await res.json();
+
+        if (data.jobId) {
+          // Background job started successfully
+          setSuccess(`Processing started. Job ID: ${data.jobId}`);
+          // You can optionally use the jobId to poll status or show download link later
+        } else {
+          setError("Unexpected response from server.");
+        }
       } else {
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(data?.error || "Submission failed. Please try again.");
-          return;
-        }
-        setSuccess(
-          data?.count
-            ? `Successfully processed ${data.count} row(s).`
-            : "Submitted successfully.",
-        );
-        setName("");
-        setRecords("");
-        if (fileInputRef.current) fileInputRef.current.value = "";
+        setError(data.error || "Submission failed. Please try again.");
       }
     } catch (err: any) {
       if (err?.name === "AbortError") {
         setError("Request timed out. Please try again later.");
-      } else
+      } else {
         setError("Network error. Please check your connection and try again.");
-      clearTimeout(timeout);
+      }
     } finally {
       setSubmitting(false);
       clearTimeout(timeout);
