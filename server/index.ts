@@ -2,49 +2,65 @@ import express, { Request, Response } from "express";
 import { generateStudentsPdf } from "./generators/students";
 import path from "path";
 import archiver from "archiver";
+import { tmpdir } from "os";
+import { createWriteStream } from "fs";
 
 const port = process.env.PORT || 4000;
 
 const app = express();
 app.use(express.json());
 
+const tempDir = path.join(tmpdir(), "app-name");
+app.use("/downloads", express.static(tempDir));
 // Serve static files from the 'public' folder
 app.use(express.static(path.join(__dirname, "public")));
 
+import * as os from "os";
+import { randomUUID } from "crypto";
+
+function getDownloadsFolder(): string {
+  const home = os.homedir();
+  return path.join(home, "Downloads");
+}
+
+const appDir = path.join(getDownloadsFolder(), "feedback-forms");
+
 app.post("/generate/student", async (req: Request, res: Response) => {
   const records = req.body.records;
-  console.info(
-    "Request received to generate PDFs for students:",
-    records.length,
-  );
+  const runId = randomUUID();
 
-  console.info("Generating student PDFs...");
-  // The function now returns { runId, exportDir, generatedFiles }
-  const { runId, exportDir } = await generateStudentsPdf(records);
-  console.info("PDF generation completed.");
+  // Make the following tasks background
+  //
+  // Respond early to client with job id
+  res.json({ jobId: runId, message: "Processing started" });
 
-  // Set response headers for zip download (include runId for reference if needed)
-  res.setHeader("Content-Type", "application/zip");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename=students-${runId}.zip`,
-  );
+  // Background async execution - no await here
+  (async () => {
+    try {
+      const { exportDir } = await generateStudentsPdf(records, appDir, runId);
 
-  console.info("Creating zip archive...");
-  const archive = archiver("zip", { zlib: { level: 9 } });
+      const zipPath = path.join(appDir, "students", `${runId}.zip`);
+      const output = createWriteStream(zipPath);
+      const archive = archiver("zip", { zlib: { level: 9 } });
 
-  archive.on("error", (err) => {
-    console.error(err);
-    res.status(500).send({ error: "Could not create archive" });
-  });
+      output.on("close", () => {
+        console.info(`Zip created at ${zipPath}`);
+        // Zip is ready to download at /downloads/students/runId.zip
+      });
 
-  archive.pipe(res);
+      archive.on("error", (err) => {
+        console.error(err);
+        // If you add job status tracking, mark job as failed here
+      });
 
-  // Append all files in the generated temp directory to the zip
-  archive.directory(exportDir, false);
-
-  archive.finalize();
-  console.info("Zip archive created and sent to client.");
+      archive.pipe(output);
+      archive.directory(exportDir, false);
+      await archive.finalize();
+    } catch (error) {
+      console.error("Background job error:", error);
+      // Handle error accordingly, e.g., mark job status failed
+    }
+  })();
 });
 
 app.listen(port, () => {

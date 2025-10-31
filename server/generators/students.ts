@@ -1,9 +1,8 @@
 import puppeteer from "puppeteer";
 import fs from "fs";
-import os from "os";
-import { randomUUID } from "crypto";
 import { StudentRecordWithFeedback } from "../types/students";
 import { Responses } from "../types/common";
+import path from "path";
 
 const port = process.env.PORT || 4000;
 const LOGO_IMG = `http://localhost:${port}/logo.png`;
@@ -462,10 +461,10 @@ function generateHTML(item: StudentRecordWithFeedback): string {
 
 export async function generateStudentsPdf(
   records: StudentRecordWithFeedback[],
+  appDir: string,
+  runId: string,
 ): Promise<{ runId: string; exportDir: string }> {
-  const tempDir = os.tmpdir();
-  const runId = randomUUID();
-  const exportDir = `${tempDir}/students-${runId}`;
+  const exportDir = path.join(appDir, "students", runId);
   fs.mkdirSync(exportDir, { recursive: true });
 
   const browser = await puppeteer.launch({
