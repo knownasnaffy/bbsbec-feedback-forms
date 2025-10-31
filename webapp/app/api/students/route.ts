@@ -5,6 +5,7 @@ import {
   generateRecords,
 } from "@/lib/generator/students";
 import { isValidCsv } from "@/lib/csv";
+import { randomizedSubset } from "@/lib/utils";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}) as any);
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      records: dataset.slice(0, Math.floor(dataset.length * 0.7)), // Limit for testing
+      records: randomizedSubset(dataset),
     }),
     signal: controller.signal,
   });
